@@ -158,4 +158,9 @@ public class ASTOService {
 	public List<PensinerDetails> VerifyPensionerByStoAndStatus(String status, String astoId) {
 		return repository.getPensionersByAstoAndStatus(status, astoId);
 	}
+
+	public byte[] generatePdf(Object object) {
+
+		return null;
+	}
 }

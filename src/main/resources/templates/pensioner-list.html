@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+	<title>Pensioner Verified List</title>
+	<style>
+		body {
+			font-family: Arial, sans-serif;
+			margin: 20px;
+			line-height: 1.6;
+		}
+
+		h2 {
+			text-align: center;
+			color: #007bff;
+			margin-bottom: 20px;
+		}
+
+		table {
+			width: 100%;
+			border-collapse: collapse;
+			margin-top: 20px;
+		}
+
+		th,
+		td {
+			border: 1px solid #ddd;
+			padding: 10px;
+			text-align: center;
+		}
+
+		th {
+			background-color: #343a40;
+			color: white;
+		}
+
+		tr:nth-child(even) {
+			background-color: #f2f2f2;
+		}
+	</style>
+</head>
+
+<body>
+	<h2>Pensioner List</h2>
+	<table>
+		<thead>
+			<tr>
+				<th>SL No</th>
+				<th>Pensioner ID</th>
+				<th>Pensioner Name</th>
+				<th>Pensioner Type</th>
+				<th>Approved Status</th>
+			</tr>
+		</thead>
+		<tbody>
+
+			<tr th:each="pensioner : ${pensioners}">
+				<td th:text="${pensioner.SLNo}"></td>
+				<td th:text="${pensioner.pensionerId}"></td>
+				<td th:text="${pensioner.pensionerName}"></td>
+				<td th:text="${pensioner.pensionerType}"></td>
+				<td th:text="${pensioner.status}"></td>
+			</tr>
+		</tbody>
+	</table>
+</body>
+
+</html>
