@@ -75,7 +75,7 @@ public class ASTOService {
 		if (!imageFile.exists()) {
 			String errorMessage = "Image file not found at path: " + path;
 			// logger.error(errorMessage);
-			throw new RuntimeException(errorMessage); // You can handle the exception as per your logic
+			return null;// You can handle the exception as per your logic
 		}
 
 		byte[] imageBytes = null;
@@ -85,7 +85,7 @@ public class ASTOService {
 		} catch (IOException e) {
 			String errorMessage = "Error reading image file from path: " + path;
 			// logger.error(errorMessage, e);
-			throw new RuntimeException(errorMessage, e);
+			return null;
 		}
 
 		String encodedImage = null;
@@ -96,7 +96,7 @@ public class ASTOService {
 		} catch (Exception e) {
 			String errorMessage = "Error encoding image to Base64 for Pensioner ID: " + pensionerId;
 			// logger.error(errorMessage, e);
-			throw new RuntimeException(errorMessage, e);
+			return null;
 		}
 		return encodedImage;
 	}
