@@ -149,51 +149,59 @@ public class StoService {
 	}
 
 	@Transactional
-	public String VerifyPensionerBySto(UpdateDetails details) {
-		StoAudit entity = new StoAudit();
+	public String verifyPensionerBySto(UpdateDetails details) {
+	    StoAudit entity = new StoAudit();
+	    try {
+	        // Copying properties from UpdateDetails to StoAudit entity
+	        BeanUtils.copyProperties(details, entity);
+	        logger.info("Copied details into StoAudit entity: {} " + entity);
 
-		try {
-			BeanUtils.copyProperties(details, entity);
+	        // Fetching the pensioner entity based on PPO ID
+	        DtaRegistration pensionerEntity = dtaRepo.findByPpoId(details.getPpoId());
+	        if (pensionerEntity == null) {
+	            logger.warn("No pensioner found with PPO ID: {}  " +  details.getPpoId());
+	            return "Pensioner not found.";
+	        }
 
-			DtaRegistration pensionerEntity = dtaRepo.findByPpoId(details.getPpoId());
-			pensionerEntity.setStoStatus(details.getStatus());
-			pensionerEntity.setReMark(details.getReMark());
-			// response.setModifiedDate("");
+	        // Updating pensioner status and remarks
+	        pensionerEntity.setStoStatus(details.getStatus());
+	        pensionerEntity.setReMark(details.getReMark());
+	        logger.info("Updated pensioner status to: {} and remarks to: {}  "  +  details.getStatus() +" and "+ details.getReMark());
 
-			AuthPensionerReq requ = new AuthPensionerReq();
-			requ.setPpo_id(details.getPpoId());
+	        // Authenticating pensioner if not rejected and IFMIS status is false
+	        if (!"Rejected".equalsIgnoreCase(details.getStatus()) && !"true".equalsIgnoreCase(pensionerEntity.getIfmisStatus())) {
+	            logger.info("Calling Authentication API for PPO ID: {}   " +  details.getPpoId());
 
-			if (!"Rejected".equalsIgnoreCase(details.getStatus())) {
+	            AuthPensionerReq request = new AuthPensionerReq();
+	            request.setPpo_id(details.getPpoId());
 
-				logger.info("Calling Authintication API : {} " + details.getPpoId());
-				AuthPensionerRes ifmisResponse = ifmisService.authenticatePensioner(requ);
-				logger.info("Completed Authintication API and Response is  : {} " + ifmisResponse);
+	            AuthPensionerRes ifmisResponse = ifmisService.authenticatePensioner(request);
+	            logger.info("Received response from Authentication API: {} "    +  ifmisResponse);
 
-				pensionerEntity.setApplicationNumber(ifmisResponse.getAcknowledgeNo());
-				pensionerEntity.setIfmisStatus(ifmisResponse.getStatus());
-				pensionerEntity.setMessage(ifmisResponse.getMessage());
+	            // Updating pensioner entity based on API response
+	            pensionerEntity.setApplicationNumber(ifmisResponse.getAcknowledgeNo());
+	            pensionerEntity.setIfmisStatus(ifmisResponse.getStatus());
+	            pensionerEntity.setMessage(ifmisResponse.getMessage());
 
-				// String inputDateTime =ifmisResponse.getAuthorizationDate();
+	            // Uncomment if you want to handle date conversion
+	            // String inputDateTime = ifmisResponse.getAuthorizationDate();
+	            // DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSSSSS");
+	            // LocalDateTime localDateTime = LocalDateTime.parse(inputDateTime, formatter);
+	            // pensionerEntity.setModifiedDate(localDateTime);
+	        }
 
-				// Define the input format
-				// DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd
-				// HH:mm:ss.SSSSSS");
+	        // Saving updated pensioner details and audit entity
+	        dtaRepo.save(pensionerEntity);
+	        stoAuditRepository.save(entity);
+	        logger.info("Successfully saved pensioner and audit records.");
 
-				// Parse the input string to LocalDateTime
-				// LocalDateTime localDateTime = LocalDateTime.parse(inputDateTime, formatter);
-				// pensionerEntity.setModifiedDate(localDateTime);
-
-			}
-
-			DtaRegistration dbResponse = dtaRepo.save(pensionerEntity);
-			StoAudit responseAudit = stoAuditRepository.save(entity);
-
-		} catch (Exception e) {
-			return "null";
-		}
-		return "Updated Successfully";
-
+	        return "Updated Successfully";
+	    } catch (Exception e) {
+	        //logger.error("Exception occurred while verifying pensioner: {}", e.getMessage(), e);
+	        return "Failed to update: " + e.getMessage();
+	    }
 	}
+
 
 	public List<PensinerDetails> VerifyPensionerByStoAndStatus(String status, String stoId) {
 		return repository.getPensionersByStoAndStatus(status, stoId);

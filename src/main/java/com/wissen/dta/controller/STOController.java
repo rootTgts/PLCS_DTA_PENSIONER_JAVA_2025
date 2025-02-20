@@ -84,7 +84,7 @@ public class STOController {
 
 	@PostMapping("/update")
 	public String updateStatusByASto(@RequestBody UpdateDetails details) {
-		return service.VerifyPensionerBySto(details);
+		return service.verifyPensionerBySto(details);
 	}
 
 	@PostMapping("/status")
