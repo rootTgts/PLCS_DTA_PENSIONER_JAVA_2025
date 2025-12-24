@@ -2,15 +2,19 @@ package com.wissen.dta.dto;
 
 public class PensinerDetails {
 
-	String ppoId;
-	String ppoName;
-	String pensionerType;
-	String inputPhoto;
-	String departmentPhoto;
-	String dgMatchStatus;
-	String photoMatchStatus;
-	String photoMatchScore;
-	String astoStatus;
+	private String ppoId;
+	private String ppoName;
+	private String pensionerType;
+	private String inputPhoto;
+	private String departmentPhoto;
+	private String dgMatchStatus;
+	private String photoMatchStatus;
+	private String photoMatchScore;
+	private String astoStatus;
+	private String reMarried;
+	private String reEmployed;
+	private String otherPension;
+	private String consent;
 
 	public String getAstoStatus() {
 		return astoStatus;
@@ -88,12 +92,45 @@ public class PensinerDetails {
 
 	}
 
+	public String getReMarried() {
+		return reMarried;
+	}
+
+	public void setReMarried(String reMarried) {
+		this.reMarried = reMarried;
+	}
+
+	public String getReEmployed() {
+		return reEmployed;
+	}
+
+	public void setReEmployed(String reEmployed) {
+		this.reEmployed = reEmployed;
+	}
+
+	public String getOtherPension() {
+		return otherPension;
+	}
+
+	public void setOtherPension(String otherPension) {
+		this.otherPension = otherPension;
+	}
+
+	public String getConsent() {
+		return consent;
+	}
+
+	public void setConsent(String consent) {
+		this.consent = consent;
+	}
+
 	@Override
 	public String toString() {
 		return "PensinerDetails [ppoId=" + ppoId + ", ppoName=" + ppoName + ", pensionerType=" + pensionerType
 				+ ", inputPhoto=" + inputPhoto + ", departmentPhoto=" + departmentPhoto + ", dgMatchStatus="
 				+ dgMatchStatus + ", photoMatchStatus=" + photoMatchStatus + ", photoMatchScore=" + photoMatchScore
-				+ "]";
+				+ ", astoStatus=" + astoStatus + ", reMarried=" + reMarried + ", reEmployed=" + reEmployed
+				+ ", otherPension=" + otherPension + ", consent=" + consent + "]";
 	}
 
 }

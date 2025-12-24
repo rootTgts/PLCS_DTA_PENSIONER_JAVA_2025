@@ -1,7 +1,6 @@
 package com.wissen.dta.repository;
 
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -24,7 +23,7 @@ public class AstoRepository {
 	private EntityManager entityManager;
 
 	public Map<String, Object> authASto(String stoId, String password) {
-		String st1 = "SELECT asto_id, password_changed FROM asto_users WHERE asto_id = :sto_id AND password = :password";
+		String st1 = "SELECT asto_id, password_changed, role FROM asto_users WHERE asto_id = :sto_id AND password = :password";
 		Query query = entityManager.createNativeQuery(st1);
 		query.setParameter("sto_id", stoId);
 		query.setParameter("password", password);
@@ -34,9 +33,9 @@ public class AstoRepository {
 
 			if (result != null && result.length > 0) {
 				Map<String, Object> resultMap = new HashMap<>();
-				resultMap.put("sto_id", result[0]); // sto_id
+				resultMap.put("sto_id", result[0]); // asto_id
 				resultMap.put("password_changed", result[1]); // password_changed
-
+				resultMap.put("role", result[2]); 
 				return resultMap;
 			}
 		} catch (NoResultException e) {
@@ -71,9 +70,11 @@ public class AstoRepository {
 	}
 
 	public List<PensinerDetails> getPensionersByAsto(String astoId) {
-		String sql = "SELECT a.ppo_id, a.ppo_name, a.pension_type,dg_match_status,photo_match_status,photo_match_percentage FROM dta_registration a "
-				+ "INNER JOIN sto_data b ON a.ppo_id = b.ppo_id "
-				+ "WHERE b.sto_id = :stoId AND a.is_exist_user_in_app = 'false' and a.photo_match_status = 'MATCHED' and asto_status is null  ";
+		String sql = "SELECT a.ppo_id, a.ppo_name, a.pension_type, a.dg_match_status, "
+				+ "a.photo_match_status, a.photo_match_percentage " + "FROM dta_registration a "
+				+ "INNER JOIN sto_data b ON a.ppo_id = b.ppo_id " + "WHERE b.sto_id = :stoId "
+				+ "AND a.photo_match_status = 'MATCHED' " + "AND a.asto_status IS NULL "
+				+ "AND (a.other_pension = 'Yes' " + " OR a.re_employed = 'Yes' " + "     OR a.re_married = 'Yes')";
 
 		Query query = entityManager.createNativeQuery(sql);
 		query.setParameter("stoId", astoId);
@@ -96,7 +97,7 @@ public class AstoRepository {
 				pensioners.add(dto);
 			}
 		} catch (Exception e) {
-			e.printStackTrace(); // Log exception for debugging
+			e.printStackTrace(); // You can replace this with proper logging
 		}
 
 		return pensioners;
@@ -104,7 +105,7 @@ public class AstoRepository {
 
 	public PensinerDetails getPensioner(String ppoId) {
 		PensinerDetails details = new PensinerDetails();
-		String sql = "SELECT a.ppo_id, a.ppo_name, a.pension_type, input_photo_uuid, target_photo_uuid,dg_match_status,photo_match_status,photo_match_percentage FROM dta_registration a "
+		String sql = "SELECT a.ppo_id, a.ppo_name, a.pension_type, input_photo_uuid, target_photo_uuid,dg_match_status,photo_match_status,photo_match_percentage,re_employed,re_married,other_Pension FROM dta_registration a "
 				+ "WHERE a.ppo_id = :ppoId AND a.photo_match_status = 'MATCHED' LIMIT 1";
 		Query query = entityManager.createNativeQuery(sql);
 		query.setParameter("ppoId", ppoId);
@@ -120,8 +121,12 @@ public class AstoRepository {
 			details.setDgMatchStatus((String) rawResults[5]);
 			details.setPhotoMatchStatus((String) rawResults[6]);
 			details.setPhotoMatchScore((String) rawResults[7]);
+
+			details.setReEmployed((String) rawResults[8]);
+			details.setReMarried((String) rawResults[9]);
+			details.setOtherPension((String) rawResults[10]);
 		} catch (NoResultException e) {
-			// Handle case when no result is found
+			// Handle case when no re sult is found
 			System.out.println("No matching pensioner found for PPO ID: " + ppoId);
 		}
 
@@ -130,33 +135,31 @@ public class AstoRepository {
 
 	@Transactional
 	public String updatePensionerStatusBySto(String status, String ppoId, String mark) {
-	    // Get current timestamp
-	    LocalDateTime currentTime = LocalDateTime.now();
+		// Get current timestamp
+		LocalDateTime currentTime = LocalDateTime.now();
 
-	    // Update query
-	    String sql = "UPDATE dta_registration SET asto_status = :status, modified_time = :currentTime, re_mark = :mark WHERE ppo_id = :ppoId AND photo_match_status = 'MATCHED' and asto_status is null ";
+		// Update query
+		String sql = "UPDATE dta_registration SET asto_status = :status, modified_time = :currentTime, re_mark = :mark WHERE ppo_id = :ppoId AND photo_match_status = 'MATCHED' and asto_status is null ";
 
-	    Query query = entityManager.createNativeQuery(sql);
-	    query.setParameter("status", status);
-	    query.setParameter("currentTime", currentTime); // Pass LocalDateTime directly
-	    query.setParameter("ppoId", ppoId);
-	    query.setParameter("mark", mark);
+		Query query = entityManager.createNativeQuery(sql);
+		query.setParameter("status", status);
+		query.setParameter("currentTime", currentTime); // Pass LocalDateTime directly
+		query.setParameter("ppoId", ppoId);
+		query.setParameter("mark", mark);
 
-	    int updatedRecords = 0;
-	    try {
-	        updatedRecords = query.executeUpdate();
-	    } catch (Exception e) {
-	        System.err.println("SQL Error: " + e.getMessage());
-	    }
+		int updatedRecords = 0;
+		try {
+			updatedRecords = query.executeUpdate();
+		} catch (Exception e) {
+			System.err.println("SQL Error: " + e.getMessage());
+		}
 
-	    return updatedRecords > 0 ? "Updated records: " + updatedRecords : "No Data found";
+		return updatedRecords > 0 ? "Updated records: " + updatedRecords : "No Data found";
 	}
-
 
 	public List<PensinerDetails> getPensionersByAstoAndStatus(String status, String astoId) {
 		String sql = "SELECT a.ppo_id, a.ppo_name, a.pension_type FROM dta_registration a "
-				+ "INNER JOIN sto_data b ON a.ppo_id = b.ppo_id "
-				+ "WHERE b.sto_id = :stoId AND a.is_exist_user_in_app = 'false' and asto_status=:status";
+				+ "INNER JOIN sto_data b ON a.ppo_id = b.ppo_id " + "WHERE b.sto_id = :stoId and asto_status=:status";
 
 		Query query = entityManager.createNativeQuery(sql);
 		query.setParameter("stoId", astoId);

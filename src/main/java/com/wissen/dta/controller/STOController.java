@@ -18,35 +18,69 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.wissen.dta.dto.LoginRequest;
+import com.wissen.dta.dto.LoginResponse;
 import com.wissen.dta.dto.PensinerDetails;
 import com.wissen.dta.dto.RetypePasswod;
 import com.wissen.dta.dto.UpdateDetails;
+import com.wissen.dta.security.JwtTokenProvider;
 import com.wissen.dta.service.StoService;
 
 @RestController
-@RequestMapping("/plcs/sto")
+@RequestMapping("/api/sto")
 public class STOController {
 
 	private static final Log logger = LogFactory.getLog(STOController.class);
 	@Autowired
 	StoService service;
+	@Autowired
+	JwtTokenProvider jwtTokenProvider;
 
 	@SuppressWarnings("unused")
-	@PostMapping("/signin")
-	public ResponseEntity<Map<String, String>> signIn(@RequestBody LoginRequest loginRequest) {
-		Map<String, String> map = new HashMap<>();
-		Map<String, Object> dept = service.authSto(loginRequest.getCode(), loginRequest.getPassword());
-		if (dept != null) {
-			map.put("code", (Integer) dept.get("sto_id") + "");
-			map.put("authenticate", "true");
-			map.put("passwordChanged", (String) dept.get("password_changed"));
-			return ResponseEntity.ok(map);
-		} else {
-			map.put("code", null);
-			map.put("authenticate", "false");
+//	@PostMapping("/signin")
+//	public ResponseEntity<Map<String, String>> signIn(@RequestBody LoginRequest loginRequest) {
+//		Map<String, String> map = new HashMap<>();
+//		Map<String, Object> dept = service.authSto(loginRequest.getCode(), loginRequest.getPassword());
+//		if (dept != null) {
+//			map.put("code", (Integer) dept.get("sto_id") + "");
+//			map.put("authenticate", "true");
+//			map.put("passwordChanged", (String) dept.get("password_changed"));
+//			return ResponseEntity.ok(map);
+//		} else {
+//			map.put("code", null);
+//			map.put("authenticate", "false");
+//
+//			return ResponseEntity.ok(map);
+//		}
+//	}
 
-			return ResponseEntity.ok(map);
+	@PostMapping("/signin")
+	public ResponseEntity<LoginResponse> signIn(@RequestBody LoginRequest loginRequest) {
+
+		Map<String, Object> dept = service.authSto(loginRequest.getCode(), loginRequest.getPassword());
+
+		if (dept == null) {
+			LoginResponse resp = new LoginResponse();
+			resp.setCode(null);
+			resp.setAuthenticate(false);
+			resp.setPasswordChanged(null);
+			resp.setToken(null);
+			resp.setRole(null);
+			return ResponseEntity.ok(resp);
 		}
+
+		LoginResponse resp = new LoginResponse();
+
+		// Extract values safely
+		resp.setCode(String.valueOf(dept.get("sto_id")));
+		resp.setAuthenticate(true);
+		resp.setPasswordChanged((String) dept.get("password_changed"));
+		resp.setRole((String) dept.get("role"));
+
+		// Generate JWT using LoginResponse
+		String token = jwtTokenProvider.createToken(resp);
+		resp.setToken(token);
+
+		return ResponseEntity.ok(resp);
 	}
 
 	@PostMapping("/password-change")
@@ -83,7 +117,7 @@ public class STOController {
 	}
 
 	@PostMapping("/update")
-	public String updateStatusByASto(@RequestBody UpdateDetails details) {
+	public String updateStatusBySto(@RequestBody UpdateDetails details) {
 		return service.verifyPensionerBySto(details);
 	}
 

@@ -24,7 +24,7 @@ public class StoRepository {
 	private EntityManager entityManager;
 
 	public Map<String, Object> authSto(String stoId, String password) {
-		String st1 = "SELECT sto_id, password_changed FROM sto_users WHERE sto_id = :sto_id AND password = :password";
+		String st1 = "SELECT sto_id, password_changed,role FROM sto_users WHERE sto_id = :sto_id AND password = :password";
 		Query query = entityManager.createNativeQuery(st1);
 		query.setParameter("sto_id", stoId);
 		query.setParameter("password", password);
@@ -36,7 +36,7 @@ public class StoRepository {
 				Map<String, Object> resultMap = new HashMap<>();
 				resultMap.put("sto_id", result[0]); // sto_id
 				resultMap.put("password_changed", result[1]); // password_changed
-
+				resultMap.put("role", result[2]); 
 				return resultMap;
 			}
 		} catch (NoResultException e) {
@@ -71,19 +71,18 @@ public class StoRepository {
 	}
 
 	public List<PensinerDetails> getPensionersBySto(String stoId) {
-		String sql = "SELECT a.ppo_id, a.ppo_name, a.pension_type,asto_status,photo_match_status,photo_match_percentage FROM dta_registration a "
-				+ "INNER JOIN sto_data b ON a.ppo_id = b.ppo_id "
-				+ "WHERE b.sto_id = :stoId AND a.is_exist_user_in_app = 'false' and a.photo_match_status = 'MATCHED' and asto_status is not null and sto_status is null ";
-
+		String sql = "SELECT a.ppo_id, a.ppo_name, a.pension_type, a.asto_status, "
+				+ "a.photo_match_status, a.photo_match_percentage " + "FROM dta_registration a "
+				+ "INNER JOIN sto_data b ON a.ppo_id = b.ppo_id " + "WHERE b.sto_id = :stoId "
+				+ "AND a.photo_match_status = 'MATCHED' " + "AND a.asto_status IS NOT NULL "
+				+ "AND a.sto_status IS NULL " + "AND (a.other_pension = 'Yes' " + "     OR a.re_employed = 'Yes' "
+				+ " OR a.re_married = 'Yes')";
 		Query query = entityManager.createNativeQuery(sql);
 		query.setParameter("stoId", stoId);
-
 		List<Object[]> rawResults;
 		List<PensinerDetails> pensioners = new ArrayList<>();
-
 		try {
 			rawResults = query.getResultList();
-
 			// Map results to DTO
 			for (Object[] row : rawResults) {
 				PensinerDetails dto = new PensinerDetails();
@@ -91,11 +90,12 @@ public class StoRepository {
 				dto.setPpoName((String) row[1]);
 				dto.setPensionerType((String) row[2]);
 				dto.setAstoStatus((String) row[3]);
-
+				dto.setPhotoMatchStatus((String) row[4]);
+				dto.setPhotoMatchScore((String) row[5]);
 				pensioners.add(dto);
 			}
 		} catch (Exception e) {
-			e.printStackTrace(); // Log exception for debugging
+			e.printStackTrace(); // Use proper logging in production
 		}
 
 		return pensioners;
@@ -103,7 +103,7 @@ public class StoRepository {
 
 	public PensinerDetails getPensioner(String ppoId) {
 		PensinerDetails details = new PensinerDetails();
-		String sql = "SELECT a.ppo_id, a.ppo_name, a.pension_type, input_photo_uuid, target_photo_uuid,dg_match_status,photo_match_status,photo_match_percentage FROM dta_registration a "
+		String sql = "SELECT a.ppo_id, a.ppo_name, a.pension_type, input_photo_uuid, target_photo_uuid,dg_match_status,photo_match_status,photo_match_percentage,re_employed,re_married,other_pension FROM dta_registration a "
 				+ "WHERE a.ppo_id = :ppoId AND a.photo_match_status = 'MATCHED' LIMIT 1";
 		Query query = entityManager.createNativeQuery(sql);
 		query.setParameter("ppoId", ppoId);
@@ -119,6 +119,10 @@ public class StoRepository {
 			details.setDgMatchStatus((String) rawResults[5]);
 			details.setPhotoMatchStatus((String) rawResults[6]);
 			details.setPhotoMatchScore((String) rawResults[7]);
+			details.setOtherPension((String) rawResults[10]);
+			details.setReEmployed((String) rawResults[8]);
+			details.setReMarried((String) rawResults[9]);
+			
 		} catch (NoResultException e) {
 			// Handle case when no result is found
 			System.out.println("No matching pensioner found for PPO ID: " + ppoId);
@@ -151,8 +155,7 @@ public class StoRepository {
 
 	public List<PensinerDetails> getPensionersByStoAndStatus(String status, String stoId) {
 		String sql = "SELECT a.ppo_id, a.ppo_name, a.pension_type FROM dta_registration a "
-				+ "INNER JOIN sto_data b ON a.ppo_id = b.ppo_id "
-				+ "WHERE b.sto_id = :stoId AND a.is_exist_user_in_app = 'false' and sto_status=:status";
+				+ "INNER JOIN sto_data b ON a.ppo_id = b.ppo_id " + "WHERE b.sto_id = :stoId and sto_status=:status";
 
 		Query query = entityManager.createNativeQuery(sql);
 		query.setParameter("stoId", stoId);

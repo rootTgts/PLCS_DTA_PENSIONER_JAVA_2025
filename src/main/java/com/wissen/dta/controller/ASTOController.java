@@ -5,9 +5,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -22,30 +20,63 @@ import com.wissen.dta.dto.PensinerDetails;
 import com.wissen.dta.dto.RetypePasswod;
 import com.wissen.dta.dto.UpdateDetails;
 import com.wissen.dta.service.ASTOService;
+import com.wissen.dta.dto.LoginResponse;
+import com.wissen.dta.security.JwtTokenProvider;
 
 @RestController
-@RequestMapping("/plcs/asto")
+@RequestMapping("/api/asto")
 public class ASTOController {
 
 	@Autowired
 	private ASTOService service;
+	@Autowired
+	JwtTokenProvider jwtTokenProvider;
 
 	@SuppressWarnings("unused")
+//	@PostMapping("/signin")
+//	public ResponseEntity<Map<String, String>> signIn(@RequestBody LoginRequest loginRequest) {
+//		Map<String, String> map = new HashMap<>();
+//		Map<String, Object> dept = service.authSto(loginRequest.getCode(), loginRequest.getPassword());
+//		if (dept != null) {
+//			map.put("code", (Integer) dept.get("sto_id") + "");
+//			map.put("authenticate", "true");
+//			map.put("passwordChanged", (String) dept.get("password_changed"));
+//			return ResponseEntity.ok(map);
+//		} else {
+//			map.put("code", null);
+//			map.put("authenticate", "false");
+//
+//			return ResponseEntity.ok(map);
+//		}
+//	}
 	@PostMapping("/signin")
-	public ResponseEntity<Map<String, String>> signIn(@RequestBody LoginRequest loginRequest) {
-		Map<String, String> map = new HashMap<>();
-		Map<String, Object> dept = service.authSto(loginRequest.getCode(), loginRequest.getPassword());
-		if (dept != null) {
-			map.put("code", (Integer) dept.get("sto_id") + "");
-			map.put("authenticate", "true");
-			map.put("passwordChanged", (String) dept.get("password_changed"));
-			return ResponseEntity.ok(map);
-		} else {
-			map.put("code", null);
-			map.put("authenticate", "false");
+	public ResponseEntity<LoginResponse> signIn(@RequestBody LoginRequest loginRequest) {
 
-			return ResponseEntity.ok(map);
+		Map<String, Object> dept = service.authSto(loginRequest.getCode(), loginRequest.getPassword());
+
+		if (dept == null) {
+			LoginResponse resp = new LoginResponse();
+			resp.setCode(null);
+			resp.setAuthenticate(false);
+			resp.setPasswordChanged(null);
+			resp.setToken(null);
+			resp.setRole(null);
+			return ResponseEntity.ok(resp);
 		}
+
+		LoginResponse resp = new LoginResponse();
+
+		// Extract values safely
+		resp.setCode(String.valueOf(dept.get("sto_id")));
+		resp.setAuthenticate(true);
+		resp.setPasswordChanged((String) dept.get("password_changed"));
+		resp.setRole((String) dept.get("role"));
+
+		// Generate JWT using LoginResponse
+		String token = jwtTokenProvider.createToken(resp);
+		resp.setToken(token);
+
+		return ResponseEntity.ok(resp);
 	}
 
 	@PostMapping("/password-change")

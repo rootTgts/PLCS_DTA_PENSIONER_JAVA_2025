@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.wissen.dta.service.DownloadService;
 
 @RestController
-@RequestMapping("/plcs/download")
+@RequestMapping("/stg/api/download")
 public class FileDownloadController {
 	@Autowired
 	private DownloadService downloadService;
@@ -38,9 +38,7 @@ public class FileDownloadController {
 	@GetMapping("/list")
 	public ResponseEntity<ByteArrayResource> downloadListByCodeAndStatus(@RequestParam("code") String code,
 			@RequestParam("status") String status) {
-
 		ResponseEntity<ByteArrayResource> file = downloadService.pensionerFileDownloadByCode(status, code);
-
 		return file;
 	}
 }
